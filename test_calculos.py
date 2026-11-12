@@ -1,12 +1,12 @@
 """
 Suíte de Testes Automatizados (pytest) - Seção 7: Validação e Testes.
-Cobre conversões de unidades, equações térmicas, psicrometria, casos-limite,
-invariantes físicas e verificação de tendências.
+Cobre conversões de unidades, equações térmicas, resistências em série (NBR 15220),
+psicrometria, casos-limite, invariantes físicas e verificação de tendências.
 """
 
 import pytest
 from calculos import (
-    calcular_pressao_atmosferica,
+    calcular_U_parede_camadas,
     calcular_propriedades_psicrometricas,
     converter_unidades_potencia,
     calcular_conducao_opaca,
@@ -46,15 +46,20 @@ def test_verificacao_tendencias_lineares():
     assert ocup_dobro["Q_ocup_total"] == pytest.approx(2.0 * ocup_base["Q_ocup_total"], rel=1e-6)
 
 
+def test_resistencia_termica_camadas_nbr15220():
+    """Verifica se a adição de isolante térmico reduz a transmitância U da parede."""
+    sem_isol = calcular_U_parede_camadas(k_miolo=0.45, esp_miolo_cm=14.0, esp_reboco_total_cm=3.0)
+    com_isol = calcular_U_parede_camadas(k_miolo=0.45, esp_miolo_cm=14.0, esp_reboco_total_cm=3.0, k_isolante=0.04, esp_isolante_cm=5.0)
+    assert com_isol["R_total"] > sem_isol["R_total"]
+    assert com_isol["U"] < sem_isol["U"]
+
+
 def test_invariantes_fisicas_psicrometria():
-    """
-    Para qualquer condição subsaturada (UR < 100%), deve valer estritamente T_po < T_bu < T_bs.
-    Em saturação (UR = 100%), deve valer T_po == T_bu == T_bs.
-    """
+    """Para UR < 100%, deve valer T_po < T_bu < T_bs; em UR = 100%, T_po == T_bu == T_bs."""
     psic_50 = calcular_propriedades_psicrometricas(T_bs=32.0, UR=50.0, altitude_m=900.0)
     assert psic_50["T_po"] < psic_50["T_bu"] < psic_50["T_bs"]
     assert psic_50["w_g_kg"] > 0.0
-    assert psic_50["P_atm"] < 101.325  # Altitude de 900 m deve ter pressão menor que ao nível do mar
+    assert psic_50["P_atm"] < 101.325
 
     psic_100 = calcular_propriedades_psicrometricas(T_bs=25.0, UR=100.0, altitude_m=0.0)
     assert psic_100["T_po"] == pytest.approx(25.0, abs=0.05)
