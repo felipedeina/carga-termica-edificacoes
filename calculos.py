@@ -2,7 +2,7 @@
 Módulo de Engenharia: Modelagem Termodinâmica, Psicrometria, Carga Térmica e Conforto.
 Referências Técnicas:
 - ABNT NBR 16401-1, 16401-2 e 16401-3 (Instalações de ar-condicionado)
-- ABNT NBR 15220-2 (Desempenho térmico de edificações - Transmitância e Capacidade Térmica)
+- ABNT NBR 15220-2 (Desempenho térmico de edificações - Transmitância e Resistência Térmica)
 - ASHRAE Handbook - Fundamentals (Cap. 1 Psychrometrics / Cap. 18 Nonresidential Cooling Loads)
 - ABNT NBR ISO 7730 / ASHRAE Standard 55 (Ambientes térmicos moderados - PMV e PPD)
 """
@@ -11,7 +11,7 @@ import math
 from typing import Dict, Any, List
 
 # ==============================================================================
-# 1. BANCOS DE DADOS NORMATIVOS RASTREÁVEIS
+# 1. BANCOS DE DADOS NORMATIVOS RASTREÁVEIS E PROPRIEDADES TERMOFÍSICAS
 # ==============================================================================
 
 CIDADES_CLIMA_NBR16401: Dict[str, Dict[str, Any]] = {
@@ -34,11 +34,43 @@ MATERIAIS_PAREDE_NBR15220: Dict[str, float] = {
     "Painel pré-moldado de concreto maciço 12 cm (U = 3,60 W/m²K)": 3.60,
 }
 
+# Condutividades térmicas equivalentes k (W/m·K) para cálculo por camadas (NBR 15220-2)
+CONDUTIVIDADE_MIOLO_PAREDE: Dict[str, float] = {
+    "Tijolo cerâmico furado (alvenaria comum) [k_eq = 0,45 W/m·K]": 0.45,
+    "Tijolo cerâmico maciço [k = 0,90 W/m·K]": 0.90,
+    "Bloco de concreto vazado [k_eq = 0,65 W/m·K]": 0.65,
+    "Concreto armado maciço [k = 1,75 W/m·K]": 1.75,
+    "Bloco de concreto celular autoclavado [k = 0,30 W/m·K]": 0.30,
+    "Madeira maciça / Painel de madeira [k = 0,15 W/m·K]": 0.15,
+}
+
+ISOLANTES_TERMICOS_NBR15220: Dict[str, float] = {
+    "Sem camada de isolante térmico adicional": 0.0,
+    "Lã de vidro ou Lã de rocha [k = 0,045 W/m·K]": 0.045,
+    "Isopor / Poliestireno Expandido (EPS) [k = 0,040 W/m·K]": 0.040,
+    "Poliuretano rígido (PUR / PIR) [k = 0,028 W/m·K]": 0.028,
+}
+
 MATERIAIS_COBERTURA_NBR15220: Dict[str, float] = {
     "Laje concreto 10 cm + telha fibrocimento sem forro (U = 2,05 W/m²K)": 2.05,
     "Laje concreto 10 cm + telha cerâmica ventilada (U = 1,75 W/m²K)": 1.75,
     "Telhado com forro de gesso/mineral e lã de vidro 50 mm (U = 0,85 W/m²K)": 0.85,
     "Telha termoacústica sanduíche PIR/PUR 30 mm (U = 0,65 W/m²K)": 0.65,
+}
+
+RESISTENCIA_TELHAS_NBR15220: Dict[str, float] = {
+    "Telha de barro / cerâmica [R = 0,015 m²K/W]": 0.015,
+    "Telha de fibrocimento (8 mm) [R = 0,012 m²K/W]": 0.012,
+    "Telha metálica simples de aço/alumínio [R = 0,002 m²K/W]": 0.002,
+    "Sem telhado (apenas laje exposta impermeabilizada) [R = 0,010 m²K/W]": 0.010,
+}
+
+CONDUTIVIDADE_LAJE_FORRO: Dict[str, float] = {
+    "Laje de concreto maciço ou pré-moldado [k = 1,75 W/m·K]": 1.75,
+    "Forro de gesso acartonado / placas de gesso [k = 0,35 W/m·K]": 0.35,
+    "Forro de madeira / compensado [k = 0,15 W/m·K]": 0.15,
+    "Forro de PVC [k = 0,20 W/m·K]": 0.20,
+    "Sem laje e sem forro (telha aparente)": 0.0,
 }
 
 MATERIAIS_PISO: Dict[str, float] = {
@@ -49,11 +81,10 @@ MATERIAIS_PISO: Dict[str, float] = {
 
 MATERIAIS_PORTA: Dict[str, float] = {
     "Porta de madeira compensada oca 35 mm (U = 2,90 W/m²K)": 2.90,
-    "Porta de madeira maciça 40 mm (U = 2,20 W/m²K)": 2,
+    "Porta de madeira maciça 40 mm (U = 2,20 W/m²K)": 2.20,
     "Porta de alumínio/metálica sem isolamento (U = 5,20 W/m²K)": 5.20,
     "Porta corta-fogo / isolada acusticamente (U = 1,40 W/m²K)": 1.40,
 }
-MATERIAIS_PORTA["Porta de madeira maciça 40 mm (U = 2,20 W/m²K)"] = 2.20
 
 TIPOS_VIDRO_ASHRAE: Dict[str, Dict[str, float]] = {
     "Vidro Simples Incolor 6 mm (U = 5,70 W/m²K | FS = 0,82)": {"U": 5.70, "FS": 0.82},
@@ -63,37 +94,143 @@ TIPOS_VIDRO_ASHRAE: Dict[str, Dict[str, float]] = {
 }
 
 FATOR_SOMBREAMENTO_JANELA: Dict[str, float] = {
-    "Sem proteção solar interna ou externa (Fator = 1,00)": 1.00,
+    "Sem cortina, persiana ou proteção externa (Fator = 1,00)": 1.00,
     "Cortina ou persiana interna escura (Fator = 0,75)": 0.75,
     "Cortina ou persiana interna clara (Fator = 0,58)": 0.58,
-    "Brise-soleil ou beiral externo sombreado (Fator = 0,35)": 0.35,
+    "Brise-soleil, toldo ou beiral externo sombreado (Fator = 0,35)": 0.35,
 }
 
 IRRADIANCIA_SOLAR_ORIENTACAO: Dict[str, float] = {
-    "Oeste (Pico vespertino - 680 W/m²)": 680.0,
-    "Noroeste / Nordeste (Alta insolação - 600 W/m²)": 600.0,
-    "Norte (Insolação direta Hemisfério Sul - 540 W/m²)": 540.0,
-    "Leste (Pico matinal - 520 W/m²)": 520.0,
-    "Sul (Predominância de radiação difusa - 220 W/m²)": 220.0,
+    "Oeste - Sol forte da tarde (680 W/m²)": 680.0,
+    "Noroeste / Nordeste - Alta insolação (600 W/m²)": 600.0,
+    "Norte - Sol constante no Hemisfério Sul (540 W/m²)": 540.0,
+    "Leste - Sol da manhã (520 W/m²)": 520.0,
+    "Sul - Pouco sol direto / Sombra predominante (220 W/m²)": 220.0,
     "Horizontal / Cobertura exposta ao sol (820 W/m²)": 820.0,
 }
 
 ABSORTANCIA_COR_SUPERFICIE: Dict[str, float] = {
-    "Cor Clara / Pintura Branca (α = 0,30)": 0.30,
-    "Cor Média / Concreto Aparente / Cerâmica (α = 0,60)": 0.60,
-    "Cor Escura / Fibrocimento / Cinza Escuro (α = 0,85)": 0.85,
+    "Cor Clara / Pintura Branca ou Creme (α = 0,30)": 0.30,
+    "Cor Média / Tijolo, Cerâmica ou Concreto Aparente (α = 0,60)": 0.60,
+    "Cor Escura / Telha Escura, Cinza Chumbo ou Preto (α = 0,85)": 0.85,
 }
 
 ATIVIDADES_OCUPANTES_ASHRAE: Dict[str, Dict[str, float]] = {
-    "Sentado em repouso / Teatro / Auditório (70 W Sensível | 35 W Latente | 1,0 met)": {"S": 70.0, "L": 35.0, "met": 1.0},
-    "Trabalho de escritório / Sala de aula (75 W Sensível | 55 W Latente | 1,2 met)": {"S": 75.0, "L": 55.0, "met": 1.2},
-    "Laboratório / Comércio em pé (90 W Sensível | 95 W Latente | 1,6 met)": {"S": 90.0, "L": 95.0, "met": 1.6},
-    "Trabalho industrial leve / Academia moderada (150 W Sensível | 270 W Latente | 2,4 met)": {"S": 150.0, "L": 270.0, "met": 2.4},
+    "Sentado em repouso: Auditório / Cinema / Teatro (70 W Sensível | 35 W Latente | 1,0 met)": {"S": 70.0, "L": 35.0, "met": 1.0},
+    "Trabalho sentado: Escritório / Sala de aula / Reunião (75 W Sensível | 55 W Latente | 1,2 met)": {"S": 75.0, "L": 55.0, "met": 1.2},
+    "Em pé ou caminhando leve: Laboratório / Loja / Comércio (90 W Sensível | 95 W Latente | 1,6 met)": {"S": 90.0, "L": 95.0, "met": 1.6},
+    "Atividade física moderada: Oficina / Academia leve (150 W Sensível | 270 W Latente | 2,4 met)": {"S": 150.0, "L": 270.0, "met": 2.4},
+}
+
+AMBIENTES_VENTILACAO_NBR16401: Dict[str, Dict[str, Any]] = {
+    "Escritório / Sala Administrativa (NBR 16401-3: 3,8 L/s·pessoa + 0,30 L/s·m²)": {"Fp": 3.8, "Fa": 0.30},
+    "Sala de Aula / Treinamento (NBR 16401-3: 5,0 L/s·pessoa + 0,60 L/s·m²)": {"Fp": 5.0, "Fa": 0.60},
+    "Sala de Reuniões / Conferência (NBR 16401-3: 3,8 L/s·pessoa + 0,30 L/s·m²)": {"Fp": 3.8, "Fa": 0.30},
+    "Auditório / Sala de Espera (NBR 16401-3: 3,8 L/s·pessoa + 0,30 L/s·m²)": {"Fp": 3.8, "Fa": 0.30},
+    "Laboratório de Ensino / Pesquisa (NBR 16401-3: 5,0 L/s·pessoa + 0,90 L/s·m²)": {"Fp": 5.0, "Fa": 0.90},
+    "Loja Comercial / Varejo (NBR 16401-3: 3,8 L/s·pessoa + 0,60 L/s·m²)": {"Fp": 3.8, "Fa": 0.60},
+    "Quarto Residencial / Hotel (NBR 16401-3: 2,5 L/s·pessoa + 0,30 L/s·m²)": {"Fp": 2.5, "Fa": 0.30},
+}
+
+NIVEIS_INFILTRACAO_ACH: Dict[str, float] = {
+    "Ambiente bem vedado (janelas fechadas com borracha e porta quase sempre fechada) [0,15 ACH]": 0.15,
+    "Vedação comum (janelas normais e abertura moderada de porta) [0,30 ACH]": 0.30,
+    "Vedação antiga / Frestas visíveis ou porta abrindo com frequência [0,60 ACH]": 0.60,
+    "Porta mantida aberta ou fluxo intenso de entrada e saída de pessoas [1,20 ACH]": 1.20,
+    "Ambiente pressurizado sem infiltração de ar externo [0,00 ACH]": 0.00,
 }
 
 
 # ==============================================================================
-# 2. MÓDULO PSICROMÉTRICO ANALÍTICO (ASHRAE FUNDAMENTALS CAP. 1)
+# 2. CALCULADORES FÍSICOS DE TRANSMITÂNCIA POR CAMADAS (ABNT NBR 15220-2)
+# ==============================================================================
+
+def calcular_U_parede_camadas(
+    k_miolo: float,
+    esp_miolo_cm: float,
+    esp_reboco_total_cm: float = 3.0,
+    k_isolante: float = 0.0,
+    esp_isolante_cm: float = 0.0,
+) -> Dict[str, float]:
+    """
+    Calcula a Resistência Térmica Total (R_tot) e a Transmitância Térmica (U = 1 / R_tot)
+    de uma parede multicamadas segundo a ABNT NBR 15220-2 (fluxo horizontal):
+    R_si = 0,13 m²K/W | R_se = 0,04 m²K/W | k_argamassa = 1,15 W/m·K.
+    """
+    R_si = 0.13
+    R_se = 0.04
+    k_reboco = 1.15
+
+    R_miolo = (max(0.1, float(esp_miolo_cm)) / 100.0) / max(0.01, float(k_miolo))
+    R_reboco = (max(0.0, float(esp_reboco_total_cm)) / 100.0) / k_reboco
+    R_isol = ((max(0.0, float(esp_isolante_cm)) / 100.0) / float(k_isolante)) if k_isolante > 0 else 0.0
+
+    R_total = R_si + R_se + R_miolo + R_reboco + R_isol
+    U_calc = 1.0 / R_total
+    return {"R_total": round(R_total, 3), "U": round(U_calc, 2)}
+
+
+def calcular_U_cobertura_camadas(
+    R_telha: float,
+    possui_atico_ventilado: bool,
+    k_laje_forro: float,
+    esp_laje_forro_cm: float,
+    k_isolante: float = 0.0,
+    esp_isolante_cm: float = 0.0,
+) -> Dict[str, float]:
+    """
+    Calcula a Resistência Térmica Total (R_tot) e Transmitância (U = 1 / R_tot)
+    de coberturas (fluxo térmico descendente - verão, NBR 15220-2):
+    R_si = 0,17 m²K/W | R_se = 0,04 m²K/W | R_camara_ar = 0,21 m²K/W.
+    """
+    R_si = 0.17
+    R_se = 0.04
+    R_ar = 0.21 if possui_atico_ventilado else 0.0
+    R_forro = ((max(0.0, float(esp_laje_forro_cm)) / 100.0) / float(k_laje_forro)) if k_laje_forro > 0 else 0.0
+    R_isol = ((max(0.0, float(esp_isolante_cm)) / 100.0) / float(k_isolante)) if k_isolante > 0 else 0.0
+
+    R_total = R_si + R_se + float(R_telha) + R_ar + R_forro + R_isol
+    U_calc = 1.0 / R_total
+    return {"R_total": round(R_total, 3), "U": round(U_calc, 2)}
+
+
+def calcular_propriedades_vidro_visual(
+    estrutura_vidro: str,
+    cor_ou_pelicula: str,
+    espessura_mm: float = 6.0,
+) -> Dict[str, Any]:
+    """
+    Determina automaticamente a Transmitância U (W/m²K) e o Fator Solar (FS)
+    a partir de características visuais simples da janela (ASHRAE / NBR 15220).
+    """
+    k_vidro = 1.00  # Condutividade do vidro sodo-cálcico (W/m·K)
+    R_si, R_se = 0.13, 0.04
+    esp_m = max(0.003, float(espessura_mm) / 1000.0)
+
+    if "Duplo" in estrutura_vidro:
+        R_camara_insulada = 0.18
+        R_tot = R_si + R_se + 2.0 * (esp_m / k_vidro) + R_camara_insulada
+        if "Película" in cor_ou_pelicula or "Refletivo" in cor_ou_pelicula:
+            R_tot += 0.12  # Efeito de baixa emissividade (Low-E)
+            fs = 0.28
+        elif "Escurecido" in cor_ou_pelicula:
+            fs = 0.45
+        else:
+            fs = 0.70
+    else:
+        R_tot = R_si + R_se + (esp_m / k_vidro)
+        if "Película" in cor_ou_pelicula or "Refletivo" in cor_ou_pelicula:
+            fs = 0.42
+        elif "Escurecido" in cor_ou_pelicula:
+            fs = 0.62
+        else:
+            fs = 0.82 if espessura_mm <= 6.0 else 0.78
+
+    return {"U": round(1.0 / R_tot, 2), "FS": round(fs, 2)}
+
+
+# ==============================================================================
+# 3. MÓDULO PSICROMÉTRICO ANALÍTICO (ASHRAE FUNDAMENTALS CAP. 1)
 # ==============================================================================
 
 def calcular_pressao_atmosferica(altitude_m: float) -> float:
@@ -122,28 +259,21 @@ def calcular_propriedades_psicrometricas(T_bs: float, UR: float, altitude_m: flo
     P_atm = calcular_pressao_atmosferica(altitude_m)
     P_vs = calcular_pressao_saturacao_vapor(T_bs)
     P_v = (UR / 100.0) * P_vs
-
-    # Proteção contra P_v >= P_atm em temperaturas extremas
     P_v = min(P_v, 0.95 * P_atm)
 
-    # 1. Razão de mistura / umidade absoluta (w em kg_vapor / kg_ar_seco)
     w_kg_kg = 0.62198 * P_v / (P_atm - P_v)
     w_g_kg = w_kg_kg * 1000.0
 
-    # 2. Temperatura de Ponto de Orvalho (T_po em °C)
     gamma = math.log(max(1e-6, P_v / 0.61078))
     T_po = (237.3 * gamma) / (17.27 - gamma)
     T_po = min(T_po, T_bs)
 
-    # 3. Entalpia específica do ar úmido (h em kJ/kg de ar seco)
     h_kj_kg = 1.006 * T_bs + w_kg_kg * (2501.0 + 1.86 * T_bs)
 
-    # 4. Volume específico do ar úmido (v em m³/kg de ar seco)
     T_kelvin = T_bs + 273.15
     v_m3_kg = (0.287042 * T_kelvin * (1.0 + 1.607858 * w_kg_kg)) / P_atm
     rho_kg_m3 = 1.0 / v_m3_kg
 
-    # 5. Temperatura de Bulbo Úmido (T_bu em °C) por bisseção psicrométrica exata no intervalo [T_po, T_bs]
     low, high = T_po, T_bs
     for _ in range(30):
         mid = 0.5 * (low + high)
@@ -174,7 +304,7 @@ def calcular_propriedades_psicrometricas(T_bs: float, UR: float, altitude_m: flo
 
 
 # ==============================================================================
-# 3. CONVERSÕES DE UNIDADES E EQUAÇÕES DAS PARCELAS DE CARGA TÉRMICA
+# 4. CONVERSÕES DE UNIDADES E EQUAÇÕES DAS PARCELAS DE CARGA TÉRMICA
 # ==============================================================================
 
 def converter_unidades_potencia(potencia_w: float) -> Dict[str, float]:
@@ -189,10 +319,7 @@ def converter_unidades_potencia(potencia_w: float) -> Dict[str, float]:
 
 
 def calcular_temperatura_sol_ar(T_ext: float, alpha: float, I_solar: float, h_ext: float = 17.0) -> Dict[str, float]:
-    """
-    Calcula a Temperatura Sol-Ar (T_sol_ar) para superfícies opacas expostas à radiação:
-    T_sol_ar = T_ext + (alpha * I_solar) / h_ext
-    """
+    """Calcula a Temperatura Sol-Ar (T_sol_ar) para superfícies opacas expostas à radiação."""
     acrescimo_solar = (max(0.0, alpha) * max(0.0, I_solar)) / max(1.0, h_ext)
     return {
         "acrescimo_sol_ar": acrescimo_solar,
@@ -245,15 +372,12 @@ def calcular_carga_ar_externo(
     psic_ext: Dict[str, float],
     psic_int: Dict[str, float],
 ) -> Dict[str, float]:
-    """
-    Calcula as cargas sensível e latente associadas à entrada de ar externo (Ventilação ou Infiltração).
-    Usa a vazão mássica de ar seco real: m_dot = (V_dot_m3s) / v_ext.
-    """
+    """Calcula as cargas sensível e latente associadas à entrada de ar externo (Ventilação ou Infiltração)."""
     vazao_m3s = max(0.0, float(vazao_ls)) / 1000.0
     m_dot_ar_seco = vazao_m3s / psic_ext["v_m3_kg"]
 
-    cp_ar_umido = 1006.0 + 1860.0 * psic_ext["w_kg_kg"]  # J/(kg_as·K)
-    h_lv = 2501000.0  # Entalpia de vaporização da água a 0°C (J/kg)
+    cp_ar_umido = 1006.0 + 1860.0 * psic_ext["w_kg_kg"]
+    h_lv = 2501000.0
 
     delta_T = max(0.0, psic_ext["T_bs"] - psic_int["T_bs"])
     delta_w = max(0.0, psic_ext["w_kg_kg"] - psic_int["w_kg_kg"])
@@ -271,11 +395,7 @@ def calcular_carga_ar_externo(
 
 
 def processar_carga_termica_completa(dados: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Executa o balanço térmico global das 11 parcelas do ambiente, retornando resultados
-    intermediários, psicrometria, conversões e alertas físicos de engenharia.
-    """
-    # 1. Psicrometria Externa e Interna
+    """Executa o balanço térmico global das 11 parcelas do ambiente."""
     psic_ext = calcular_propriedades_psicrometricas(dados["T_ext"], dados["UR_ext"], dados["altitude"])
     psic_int = calcular_propriedades_psicrometricas(dados["T_int"], dados["UR_int"], dados["altitude"])
 
@@ -284,20 +404,16 @@ def processar_carga_termica_completa(dados: Dict[str, Any]) -> Dict[str, Any]:
     delta_T_ar = psic_ext["T_bs"] - psic_int["T_bs"]
     delta_T_positivo = max(0.0, delta_T_ar)
 
-    # 2. Parcela 1: Paredes Externas (com Temperatura Sol-Ar)
-    sol_ar_par = calcular_temperatura_sol_ar(
-        psic_ext["T_bs"], dados["alpha_parede"], dados["I_sol_parede"]
-    )
+    # 1. Paredes Externas
+    sol_ar_par = calcular_temperatura_sol_ar(psic_ext["T_bs"], dados["alpha_parede"], dados["I_sol_parede"])
     dT_eq_parede = max(0.0, sol_ar_par["T_sol_ar"] - psic_int["T_bs"])
     area_aberturas = dados["area_vidro"] + (dados["area_porta"] if dados["porta_externa"] else 0.0)
     area_parede_liq = max(0.0, dados["area_parede_bruta"] - area_aberturas)
     Q_paredes = calcular_conducao_opaca(dados["U_parede"], area_parede_liq, dT_eq_parede)
 
-    # 3. Parcela 2: Cobertura ou Teto
+    # 2. Cobertura ou Teto
     if dados["tipo_cobertura"] == "Exposta ao sol":
-        sol_ar_cob = calcular_temperatura_sol_ar(
-            psic_ext["T_bs"], dados["alpha_cobertura"], 820.0
-        )
+        sol_ar_cob = calcular_temperatura_sol_ar(psic_ext["T_bs"], dados["alpha_cobertura"], 820.0)
         dT_eq_cob = max(0.0, sol_ar_cob["T_sol_ar"] - psic_int["T_bs"])
         Q_cobertura = calcular_conducao_opaca(dados["U_cobertura"], area_piso, dT_eq_cob)
     elif dados["tipo_cobertura"] == "Sob pavimento não climatizado":
@@ -307,7 +423,7 @@ def processar_carga_termica_completa(dados: Dict[str, Any]) -> Dict[str, Any]:
         dT_eq_cob = 0.0
         Q_cobertura = 0.0
 
-    # 4. Parcela 3: Pisos
+    # 3. Pisos
     if dados["condicao_piso"] == "Sobre espaço não climatizado (garagem/pilotis)":
         dT_piso = max(0.0, dados["T_vizinho_piso"] - psic_int["T_bs"])
         Q_piso = calcular_conducao_opaca(dados["U_piso"], area_piso, dT_piso)
@@ -318,7 +434,7 @@ def processar_carga_termica_completa(dados: Dict[str, Any]) -> Dict[str, Any]:
         dT_piso = 0.0
         Q_piso = 0.0
 
-    # 5. Parcela 4: Janelas (Condução + Radiação Solar com Fator de Sombreamento)
+    # 4. Janelas
     res_janelas = calcular_carga_janelas(
         dados["U_vidro"],
         dados["area_vidro"],
@@ -328,60 +444,42 @@ def processar_carga_termica_completa(dados: Dict[str, Any]) -> Dict[str, Any]:
         dados["fator_sombreamento"],
     )
 
-    # 6. Parcela 5: Portas
+    # 5. Portas
     dT_porta = delta_T_positivo if dados["porta_externa"] else max(0.0, dados["dT_porta_interna"])
     Q_portas = calcular_conducao_opaca(dados["U_porta"], dados["area_porta"], dT_porta)
 
-    # 7. Parcela 6: Ocupantes (Sensível e Latente)
+    # 6. Ocupantes
     res_ocup = calcular_carga_ocupantes(dados["n_pessoas"], dados["q_sens_pes"], dados["q_lat_pes"])
 
-    # 8. Parcela 7: Iluminação
-    Q_iluminacao = calcular_carga_iluminacao(
-        dados["pot_iluminacao"], dados["fator_uso_ilum"], dados["fator_dissip_ilum"]
-    )
+    # 7. Iluminação
+    Q_iluminacao = calcular_carga_iluminacao(dados["pot_iluminacao"], dados["fator_uso_ilum"], dados["fator_dissip_ilum"])
 
-    # 9. Parcela 8: Equipamentos (Computadores + Motores + Outros/Laboratório)
+    # 8. Equipamentos
     pot_comp_total = dados["n_computadores"] * dados["pot_por_computador"]
     pot_bruta_equip = pot_comp_total + dados["pot_motores"] + dados["pot_equip_outros"]
     Q_equipamentos = pot_bruta_equip * dados["fator_simult_equip"]
 
-    # 10. Parcela 9: Ventilação Higiênica (NBR 16401-3: por pessoa + por área de piso)
+    # 9. Ventilação Higiênica
     vazao_vent_ls = (dados["n_pessoas"] * dados["vazao_pessoa_ls"]) + (area_piso * dados["vazao_area_ls_m2"])
     res_ventilacao = calcular_carga_ar_externo(vazao_vent_ls, psic_ext, psic_int)
 
-    # 11. Parcela 10: Infiltração (Método das Trocas de Ar por Hora - ACH)
+    # 10. Infiltração
     vazao_inf_ls = (volume_amb * dados["ach_infiltracao"] * 1000.0) / 3600.0
     res_infiltracao = calcular_carga_ar_externo(vazao_inf_ls, psic_ext, psic_int)
 
-    # 12. Parcela 11: Outras Cargas (Dutos, ventiladores ou fontes justificadas)
+    # 11. Outras Cargas
     Q_outras_sens = max(0.0, float(dados["outras_cargas_sens"]))
     Q_outras_lat = max(0.0, float(dados["outras_cargas_lat"]))
 
-    # Consolidação
     Q_sensivel_total = (
-        Q_paredes
-        + Q_cobertura
-        + Q_piso
-        + res_janelas["Q_vidro_cond"]
-        + res_janelas["Q_vidro_solar"]
-        + Q_portas
-        + res_ocup["Q_ocup_sens"]
-        + Q_iluminacao
-        + Q_equipamentos
-        + res_ventilacao["Q_sens"]
-        + res_infiltracao["Q_sens"]
-        + Q_outras_sens
+        Q_paredes + Q_cobertura + Q_piso + res_janelas["Q_vidro_cond"] + res_janelas["Q_vidro_solar"]
+        + Q_portas + res_ocup["Q_ocup_sens"] + Q_iluminacao + Q_equipamentos
+        + res_ventilacao["Q_sens"] + res_infiltracao["Q_sens"] + Q_outras_sens
     )
-    Q_latente_total = (
-        res_ocup["Q_ocup_lat"]
-        + res_ventilacao["Q_lat"]
-        + res_infiltracao["Q_lat"]
-        + Q_outras_lat
-    )
+    Q_latente_total = res_ocup["Q_ocup_lat"] + res_ventilacao["Q_lat"] + res_infiltracao["Q_lat"] + Q_outras_lat
     Q_total = Q_sensivel_total + Q_latente_total
     fcs = Q_sensivel_total / Q_total if Q_total > 0 else 1.0
 
-    # Diagnóstico e Alertas Físicos Automáticos (Seção 10)
     alertas: List[str] = []
     if delta_T_ar < 0:
         alertas.append(
@@ -406,7 +504,7 @@ def processar_carga_termica_completa(dados: Dict[str, Any]) -> Dict[str, Any]:
     if fcs < 0.62 and Q_total > 0:
         alertas.append(
             f"Alto Teor de Calor Latente (FCS = {fcs:.2f}): Equipamentos Split convencionais operam com FCS próximo de 0,75. "
-            "Recomenda-se prever controle dedicado de desumidificação ou reaquecimento."
+            "Recomenda-se prever controle dedicado de desumidificação."
         )
 
     parcelas_lista = [
@@ -466,7 +564,7 @@ def processar_carga_termica_completa(dados: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ==============================================================================
-# 4. MÓDULO BÔNUS: CONFORTO TÉRMICO (ABNT NBR ISO 7730 / ASHRAE 55 - PMV E PPD)
+# 5. MÓDULO BÔNUS: CONFORTO TÉRMICO (ABNT NBR ISO 7730 / ASHRAE 55 - PMV E PPD)
 # ==============================================================================
 
 def calcular_conforto_pmv_ppd(
@@ -477,18 +575,14 @@ def calcular_conforto_pmv_ppd(
     met: float,
     clo: float,
 ) -> Dict[str, Any]:
-    """
-    Calcula o Voto Médio Estimado (PMV), Percentual Estimado de Insatisfeitos (PPD)
-    e Temperatura Operativa (T_op) segundo o modelo analítico de Fanger (ABNT NBR ISO 7730).
-    """
-    M = float(met) * 58.15  # Taxa metabólica em W/m²
-    W = 0.0  # Trabalho mecânico externo (assumido nulo para ocupantes em edificações)
+    """Calcula PMV, PPD e Temperatura Operativa segundo o modelo de Fanger (ISO 7730)."""
+    M = float(met) * 58.15
+    W = 0.0
     MW = M - W
 
-    I_cl = float(clo) * 0.155  # Isolamento térmico da roupa em m²·K/W
+    I_cl = float(clo) * 0.155
     f_cl = 1.00 + 1.290 * I_cl if I_cl <= 0.078 else 1.05 + 0.645 * I_cl
 
-    # Pressão parcial de vapor d'água em Pascal (Pa)
     p_vs_kpa = calcular_pressao_saturacao_vapor(T_ar)
     p_a = (float(UR) / 100.0) * p_vs_kpa * 1000.0
 
@@ -496,10 +590,7 @@ def calcular_conforto_pmv_ppd(
     T_ra = float(T_rm) + 273.15
     v = max(0.05, float(v_ar))
 
-    # Coeficiente de transferência de calor por convecção forçada
     h_cf = 12.1 * math.sqrt(v)
-
-    # Estimativa inicial da temperatura superficial da vestimenta (T_cla em Kelvin)
     T_cla = T_aa + (35.5 - float(T_ar)) / (3.5 * I_cl + 0.1)
     p1 = I_cl * f_cl
     p2 = p1 * 3.96
@@ -522,13 +613,12 @@ def calcular_conforto_pmv_ppd(
 
     T_cl = 100.0 * xn - 273.15
 
-    # Perdas térmicas do corpo humano (W/m²)
-    hl1 = 3.05 * 0.001 * (5733.0 - 6.99 * MW - p_a)  # Difusão de vapor pela pele
-    hl2 = 0.42 * (MW - 58.15) if MW > 58.15 else 0.0  # Sudorese (evaporação de suor)
-    hl3 = 1.7 * 0.00001 * M * (5867.0 - p_a)  # Respiração latente
-    hl4 = 0.0014 * M * (34.0 - float(T_ar))  # Respiração sensível
-    hl5 = 3.96 * f_cl * ((xn ** 4) - ((T_ra / 100.0) ** 4))  # Radiação térmica
-    hl6 = f_cl * h_c * (T_cl - float(T_ar))  # Convecção
+    hl1 = 3.05 * 0.001 * (5733.0 - 6.99 * MW - p_a)
+    hl2 = 0.42 * (MW - 58.15) if MW > 58.15 else 0.0
+    hl3 = 1.7 * 0.00001 * M * (5867.0 - p_a)
+    hl4 = 0.0014 * M * (34.0 - float(T_ar))
+    hl5 = 3.96 * f_cl * ((xn ** 4) - ((T_ra / 100.0) ** 4))
+    hl6 = f_cl * h_c * (T_cl - float(T_ar))
 
     ts = 0.303 * math.exp(-0.036 * M) + 0.028
     pmv = ts * (MW - hl1 - hl2 - hl3 - hl4 - hl5 - hl6)
@@ -537,11 +627,9 @@ def calcular_conforto_pmv_ppd(
     ppd = 100.0 - 95.0 * math.exp(-0.03353 * (pmv ** 4) - 0.2179 * (pmv ** 2))
     ppd = max(5.0, min(100.0, ppd))
 
-    # Temperatura Operativa (ASHRAE 55 / ISO 7730)
     peso_A = 0.5 if v < 0.2 else (0.6 if v < 0.6 else 0.7)
     T_op = peso_A * float(T_ar) + (1.0 - peso_A) * float(T_rm)
 
-    # Classificação normativa (ISO 7730 / NBR 16401-2)
     if -0.5 <= pmv <= 0.5:
         status = "Confortável (Dentro da Zona Normativa ASHRAE 55 / NBR 16401-2: -0,5 <= PMV <= +0,5)"
         sensacao = "Neutro / Conforto Térmico"
@@ -552,7 +640,6 @@ def calcular_conforto_pmv_ppd(
         status = "Desconforto por Frio (PMV < -0,5)"
         sensacao = "Levemente Frio a Muito Frio"
 
-    # Verificação dos limites de aplicação da ISO 7730
     avisos_validade: List[str] = []
     if not (0.8 <= met <= 4.0):
         avisos_validade.append(f"Taxa metabólica ({met} met) fora da faixa ISO 7730 (0,8 a 4,0 met).")
