@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0"
 chcp 65001 > nul
 title Simulador Fisico de Carga Termica e Conforto - Engenharia Mecanica
 echo ============================================================================
