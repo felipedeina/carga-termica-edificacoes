@@ -61,8 +61,8 @@ with abas[0]:
     col_p1, col_p2 = st.columns(2)
     with col_p1:
         st.subheader("📌 Identificação do Projeto e Dimensões da Sala")
-        nome_projeto = st.text_input("Nome do Projeto / Edificação", "Edifício Eng. Mecânica - Sala de Projetos 01")
-        equipe_autores = st.text_input("Identificação da Equipe / Autores", "Equipe 01 - Refrigeração e Climatização")
+        nome_projeto = st.text_input("Nome do Projeto / Edificação", "Sala Teste")
+        equipe_autores = st.text_input("Identificação da Equipe / Autores", "Equipe - Felipe Deina de Farias (GRR20202697); Guilherme de Souza (GRR20202692); Lucca Binotto (GRR20224221)")
         horario_projeto = st.selectbox(
             "Horário e Condição Crítica de Projeto",
             ["15h00 - Pico de Insolação de Verão", "12h00 - Pico Solar Zenital", "18h00 - Ocupação Máxima Noturna"],
