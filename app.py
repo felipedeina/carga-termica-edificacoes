@@ -116,7 +116,6 @@ with abas[1]:
     col_env1, col_env2 = st.columns(2)
 
     with col_env1:
-        # 1. PAREDES EXTERNAS
         st.subheader("🧱 1. Paredes Externas")
         modo_dim_parede = st.radio(
             "Como deseja informar o tamanho das paredes externas (que pegam sol/ar livre)?",
@@ -154,17 +153,16 @@ with abas[1]:
                 ISOLANTES_TERMICOS_NBR15220[isol_par_sel], esp_isol_par_cm,
             )
             U_parede = res_u_par["U"]
-            st.info(f"🔬 **Transmitância Calculada pelas Camadas:** $R_{{total}} = {res_u_par['R_total']:.2f}\\text{{ m}}^2\\text{{K/W}} \\rightarrow \\mathbf{{U = {U_parede:.2f}\\text{{ W/m}}^2\\text{{K}}}}$")
+            st.info(f"🔬 **Transmitância Calculada pelas Camadas:** R_total = {res_u_par['R_total']:.2f} m²K/W → **U = {U_parede:.2f} W/m²K**")
         else:
             mat_parede_sel = st.selectbox("Composição Construtiva da Parede (NBR 15220)", list(MATERIAIS_PAREDE_NBR15220.keys()))
             U_parede = float(MATERIAIS_PAREDE_NBR15220[mat_parede_sel])
-            st.info(f"🔬 **Transmitância Normativa Adotada:** $\\mathbf{{U = {U_parede:.2f}\\text{{ W/m}}^2\\text{{K}}}}$")
+            st.info(f"🔬 **Transmitância Normativa Adotada:** **U = {U_parede:.2f} W/m²K**")
 
         orient_parede_sel = st.selectbox("Orientação Solar Predominante da Parede Externa", list(IRRADIANCIA_SOLAR_ORIENTACAO.keys()))
         cor_parede_sel = st.selectbox("Cor Externa da Parede (Absortância Solar)", list(ABSORTANCIA_COR_SUPERFICIE.keys()))
 
         st.divider()
-        # 2. COBERTURA OU TETO
         st.subheader("🏠 2. Cobertura ou Teto")
         tipo_cobertura = st.selectbox(
             "O que existe acima do teto desta sala?",
@@ -174,7 +172,7 @@ with abas[1]:
             U_cobertura = 2.05
             cor_cob_sel = list(ABSORTANCIA_COR_SUPERFICIE.keys())[1]
             dT_entre_forro = 0.0
-            st.success("✅ Como o andar de cima também é climatizado na mesma temperatura, não há ganho de calor pelo teto ($\dot{Q}_{cob} = 0\text{ W}$).")
+            st.success("✅ Como o andar de cima também é climatizado na mesma temperatura, não há ganho de calor pelo teto (Q_cob = 0 W).")
         else:
             modo_u_cob = st.radio(
                 "Como deseja informar a construção do telhado/teto?",
@@ -197,11 +195,11 @@ with abas[1]:
                     ISOLANTES_TERMICOS_NBR15220[isol_cob_sel], esp_isol_cob_cm,
                 )
                 U_cobertura = res_u_cob["U"]
-                st.info(f"🔬 **Transmitância Calculada da Cobertura:** $R_{{total}} = {res_u_cob['R_total']:.2f}\\text{{ m}}^2\\text{{K/W}} \\rightarrow \\mathbf{{U = {U_cobertura:.2f}\\text{{ W/m}}^2\\text{{K}}}}$")
+                st.info(f"🔬 **Transmitância Calculada da Cobertura:** R_total = {res_u_cob['R_total']:.2f} m²K/W → **U = {U_cobertura:.2f} W/m²K**")
             else:
                 mat_cob_sel = st.selectbox("Composição da Cobertura (NBR 15220)", list(MATERIAIS_COBERTURA_NBR15220.keys()))
                 U_cobertura = float(MATERIAIS_COBERTURA_NBR15220[mat_cob_sel])
-                st.info(f"🔬 **Transmitância Normativa da Cobertura:** $\\mathbf{{U = {U_cobertura:.2f}\\text{{ W/m}}^2\\text{{K}}}}$")
+                st.info(f"🔬 **Transmitância Normativa da Cobertura:** **U = {U_cobertura:.2f} W/m²K**")
 
             if tipo_cobertura == "Exposta ao sol":
                 cor_cob_sel = st.selectbox("Cor Externa do Telhado / Cobertura", list(ABSORTANCIA_COR_SUPERFICIE.keys()), index=1)
@@ -212,7 +210,6 @@ with abas[1]:
                 st.caption(f"🌡️ Diferença de temperatura estimada para o pavimento superior não climatizado: **{dT_entre_forro:.1f} °C**.")
 
         st.divider()
-        # 3. PISOS
         st.subheader("⬛ 3. Pisos")
         condicao_piso = st.selectbox(
             "O que existe embaixo do piso desta sala?",
@@ -222,7 +219,7 @@ with abas[1]:
             mat_piso_sel = list(MATERIAIS_PISO.keys())[0]
             U_piso = float(MATERIAIS_PISO[mat_piso_sel])
             T_vizinho_piso = T_int
-            st.success("✅ Sem transferência de calor pelo piso ($\dot{Q}_{piso} = 0\text{ W}$).")
+            st.success("✅ Sem transferência de calor pelo piso (Q_piso = 0 W).")
         else:
             mat_piso_sel = st.selectbox("Tipo de Laje de Piso", list(MATERIAIS_PISO.keys()))
             U_piso = float(MATERIAIS_PISO[mat_piso_sel])
@@ -230,7 +227,6 @@ with abas[1]:
             st.caption(f"🔬 Transmitância do piso: **{U_piso:.2f} W/m²K** | Temperatura estimada abaixo da laje: **{T_vizinho_piso:.1f} °C**.")
 
     with col_env2:
-        # 4. JANELAS
         st.subheader("🪟 4. Janelas (Medidas e Controle Solar)")
         n_grupos_janelas = st.number_input(
             "Quantos tamanhos diferentes de janelas existem na sala?",
@@ -244,7 +240,7 @@ with abas[1]:
             larg_j = cj2.number_input(f"Largura (m) (Tipo {i+1})", 0.1, 30.0, 2.0 if i == 0 else 1.0, 0.1, key=f"lj_{i}")
             alt_j = cj3.number_input(f"Altura (m) (Tipo {i+1})", 0.1, 15.0, 2.0 if i == 0 else 1.0, 0.1, key=f"aj_{i}")
             area_vidro += qtd_j * larg_j * alt_j
-        st.info(f"📐 **Área Total de Janelas Calculada:** $\\mathbf{{{area_vidro:.2f}\\text{{ m}}^2}}$")
+        st.info(f"📐 **Área Total de Janelas Calculada:** **{area_vidro:.2f} m²**")
 
         est_vidro = st.selectbox("Estrutura da Janela de Vidro", ["Vidro Simples (1 folha comum)", "Vidro Duplo Insulado (2 folhas com câmara de ar)"])
         cor_vidro = st.selectbox("Aparência / Película do Vidro", ["Transparente (Incolor comum)", "Escurecido (Fumê, Verde ou Bronze)", "Com Película de Controle Solar / Refletiva (Insulfilm)"])
@@ -254,13 +250,12 @@ with abas[1]:
         U_vidro = prop_vid["U"]
         FS_vidro = prop_vid["FS"]
         vidro_sel = f"{est_vidro} - {cor_vidro} ({esp_vidro_mm} mm)"
-        st.caption(f"🔬 **Propriedades determinadas automaticamente (ASHRAE):** Transmitância $\\mathbf{{U = {U_vidro:.2f}\\text{{ W/m}}^2\\text{{K}}}}$ | Fator Solar $\\mathbf{{\\text{{FS}} = {FS_vidro:.2f}}}$")
+        st.caption(f"🔬 **Propriedades automáticas (ASHRAE):** Transmitância **U = {U_vidro:.2f} W/m²K** | Fator Solar **FS = {FS_vidro:.2f}**")
 
         orient_vidro_sel = st.selectbox("Orientação Solar das Janelas (Para onde apontam?)", list(IRRADIANCIA_SOLAR_ORIENTACAO.keys()))
         somb_sel = st.selectbox("Possui Cortina, Persiana ou Proteção Solar?", list(FATOR_SOMBREAMENTO_JANELA.keys()), index=2)
 
         st.divider()
-        # 5. PORTAS
         st.subheader("🚪 5. Portas (Medidas e Localização)")
         n_grupos_portas = st.number_input("Quantos tamanhos diferentes de portas existem na sala?", 1, 4, 1, 1)
         area_porta = 0.0
@@ -270,7 +265,7 @@ with abas[1]:
             larg_p = cp2.number_input(f"Largura Porta (m) (Tipo {j+1})", 0.4, 10.0, 0.90, 0.1, key=f"lp_{j}")
             alt_p = cp3.number_input(f"Altura Porta (m) (Tipo {j+1})", 1.0, 6.0, 2.10, 0.1, key=f"ap_{j}")
             area_porta += qtd_p * larg_p * alt_p
-        st.info(f"📐 **Área Total de Portas Calculada:** $\\mathbf{{{area_porta:.2f}\\text{{ m}}^2}}$")
+        st.info(f"📐 **Área Total de Portas Calculada:** **{area_porta:.2f} m²**")
 
         porta_sel = st.selectbox("Material da Porta", list(MATERIAIS_PORTA.keys()))
         U_porta = float(MATERIAIS_PORTA[porta_sel])
@@ -288,11 +283,11 @@ with abas[1]:
         elif "SEM ar-condicionado" in destino_porta:
             porta_externa = False
             dT_porta_interna = max(0.0, 0.5 * (T_ext - T_int))
-            st.caption(f"🌡️ Diferença de temperatura adotada para corredor não climatizado ($0,5 \\times \\Delta T$): **{dT_porta_interna:.1f} °C**.")
+            st.caption(f"🌡️ Diferença de temperatura adotada para corredor não climatizado (0,5 × ΔT): **{dT_porta_interna:.1f} °C**.")
         else:
             porta_externa = False
             dT_porta_interna = 0.0
-            st.caption("✅ Porta conectada a ambiente climatizado ($\Delta T = 0\text{ °C}$).")
+            st.caption("✅ Porta conectada a ambiente climatizado (ΔT = 0 °C).")
 
 # ------------------------------------------------------------------------------
 # ABA 3: OCUPANTES, ILUMINAÇÃO, EQUIPAMENTOS, VENTILAÇÃO, INFILTRAÇÃO E OUTRAS
@@ -300,7 +295,6 @@ with abas[1]:
 with abas[2]:
     col_int1, col_int2 = st.columns(2)
     with col_int1:
-        # 6. OCUPANTES
         st.subheader("👥 6. Ocupantes (Pessoas no Ambiente)")
         n_pessoas = st.number_input("Número de pessoas no ambiente", 0, 1000, 16, 1)
         ativ_sel = st.selectbox("O que as pessoas fazem no ambiente? (Atividade Metabólica)", list(ATIVIDADES_OCUPANTES_ASHRAE.keys()), index=1)
@@ -312,7 +306,6 @@ with abas[2]:
         )
 
         st.divider()
-        # 7. ILUMINAÇÃO
         st.subheader("💡 7. Iluminação")
         modo_ilum = st.radio(
             "Como deseja informar as lâmpadas da sala?",
@@ -334,7 +327,6 @@ with abas[2]:
         fator_uso_ilum = 1.00 if "100%" in perfil_uso_luz else (0.80 if "80%" in perfil_uso_luz else 0.50)
 
         st.divider()
-        # 8. EQUIPAMENTOS INTERNOS
         st.subheader("💻 8. Equipamentos e Aparelhos Elétricos")
         st.caption("Informe a **quantidade** de cada aparelho presente na sala (o programa multiplica e soma automaticamente):")
         ceq1, ceq2 = st.columns(2)
@@ -359,7 +351,6 @@ with abas[2]:
         fator_simult_equip = 0.85 if "85%" in simult_sel else (1.00 if "100%" in simult_sel else 0.60)
 
     with col_int2:
-        # 9. VENTILAÇÃO HIGIÊNICA
         st.subheader("🌬️ 9. Ventilação (Renovação de Ar - NBR 16401-3)")
         amb_vent_sel = st.selectbox("Qual é o tipo de uso deste ambiente? (Define a vazão da norma)", list(AMBIENTES_VENTILACAO_NBR16401.keys()))
         vazao_pessoa_ls = float(AMBIENTES_VENTILACAO_NBR16401[amb_vent_sel]["Fp"])
@@ -371,14 +362,12 @@ with abas[2]:
         )
 
         st.divider()
-        # 10. INFILTRAÇÃO
         st.subheader("🍃 10. Infiltração de Ar por Frestas e Portas")
         nivel_inf_sel = st.selectbox("Como é a vedação das janelas e o abre-e-fecha de portas da sala?", list(NIVEIS_INFILTRACAO_ACH.keys()), index=1)
         ach_infiltracao = float(NIVEIS_INFILTRACAO_ACH[nivel_inf_sel])
         st.caption(f"🍃 Taxa de renovação involuntária adotada: **{ach_infiltracao:.2f} trocas de ar por hora (ACH)**.")
 
         st.divider()
-        # 11. OUTRAS CARGAS
         st.subheader("➕ 11. Outras Cargas Térmicas Justificadas")
         incluir_ventilador = st.checkbox("Incluir dissipação de calor do motor do ventilador interno do ar-condicionado (150 W)?", value=True)
         incluir_cafeteira_vapor = st.checkbox("Existe cafeteira elétrica / chaleira / geração de vapor interna (100 W Latente)?", value=False)
@@ -601,4 +590,296 @@ with abas[4]:
                 "Pessoas sentadas perto de janelas pegando sol ou sob telhado quente (+3,5 °C sobre o ar)",
             ],
         )
-        acrescimo_trm = 1.0
+        acrescimo_trm = 1.0 if "+1,0" in efeito_radiante_sel else (0.0 if "Igual" in efeito_radiante_sel else 3.5)
+        T_rm_conf = T_ar_conf + acrescimo_trm
+
+    with cc2:
+        vento_sel = st.selectbox(
+            "Movimentação do ar sobre as pessoas (Velocidade do ar):",
+            [
+                "Brisa leve normal de ar-condicionado central/Split (0,15 m/s)",
+                "Ar praticamente parado / Sem corrente de ar perceptível (0,08 m/s)",
+                "Vento perceptível de difusor próximo ou ventilador de apoio (0,35 m/s)",
+            ],
+        )
+        v_ar_conf = 0.15 if "0,15" in vento_sel else (0.08 if "0,08" in vento_sel else 0.35)
+
+        vestimenta_opcoes = {
+            "Roupas leves de verão: calça leve e camisa de manga curta (0,50 clo)": 0.50,
+            "Traje de escritório/aula: calça social, camisa manga longa ou jaleco (0,75 clo)": 0.75,
+            "Traje formal completo / terno ou agasalho de inverno (1,00 clo)": 1.00,
+        }
+        vest_sel = st.selectbox("Que tipo de roupa as pessoas estão vestindo?", list(vestimenta_opcoes.keys()), index=0)
+        clo_conf = float(vestimenta_opcoes[vest_sel])
+        met_conf = float(ATIVIDADES_OCUPANTES_ASHRAE[ativ_sel]["met"])
+        st.info(
+            f"📌 **Parâmetros Físicos Adotados (ISO 7730):** Temperatura Radiante Média T_rm = {T_rm_conf:.1f} °C | "
+            f"Atividade M = {met_conf:.1f} met (trazida da Aba 3) | Vestimenta I_cl = {clo_conf:.2f} clo"
+        )
+
+    res_conf = calcular_conforto_pmv_ppd(T_ar_conf, T_rm_conf, v_ar_conf, UR_conf, met_conf, clo_conf)
+
+    for av in res_conf["avisos_validade"]:
+        st.warning(f"⚠️ **Limite de Validade ISO 7730:** {av}")
+
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Índice PMV (Sensação)", f"{res_conf['PMV']:+.2f}", res_conf["sensacao"])
+    k2.metric("Índice PPD (Pessoas Insatisfeitas)", f"{res_conf['PPD']:.1f}%", "Meta da Norma <= 10%")
+    k3.metric("Temperatura Operativa Sentida (T_op)", f"{res_conf['T_op']:.1f} °C")
+    k4.metric("Temp. Externa da Roupa (T_cl)", f"{res_conf['T_cl']:.1f} °C")
+
+    if -0.5 <= res_conf["PMV"] <= 0.5:
+        st.success(f"✅ **Diagnóstico Normativo:** {res_conf['status']}")
+    else:
+        st.error(f"❌ **Diagnóstico Normativo:** {res_conf['status']}")
+
+    pmv_eixo = [x / 10.0 for x in range(-30, 31)]
+    ppd_eixo = [100.0 - 95.0 * (2.718281828 ** (-0.03353 * (p ** 4) - 0.2179 * (p ** 2))) for p in pmv_eixo]
+    fig_fanger = go.Figure()
+    fig_fanger.add_trace(go.Scatter(x=pmv_eixo, y=ppd_eixo, mode="lines", name="Curva Teórica de Fanger", line=dict(color="#1D3557", width=3)))
+    fig_fanger.add_vrect(x0=-0.5, x1=0.5, fillcolor="seagreen", opacity=0.2, line_width=0, annotation_text="Zona Conforto (-0,5 a +0,5)")
+    fig_fanger.add_trace(go.Scatter(
+        x=[res_conf["PMV"]],
+        y=[res_conf["PPD"]],
+        mode="markers+text",
+        text=[f"Sala Atual (PMV={res_conf['PMV']:+.2f}, PPD={res_conf['PPD']:.1f}%)"],
+        textposition="top center",
+        marker=dict(size=14, color="#E63946"),
+        name="Condição do Ambiente",
+    ))
+    fig_fanger.update_layout(
+        title="Curva Clássica de Fanger: PMV vs. PPD (ABNT NBR ISO 7730)",
+        xaxis_title="PMV (Escala: -3 Muito Frio | 0 Neutro Confortável | +3 Muito Quente)",
+        yaxis_title="PPD - Percentual Estimado de Insatisfeitos (%)",
+        yaxis_range=[0, 105],
+    )
+    st.plotly_chart(fig_fanger, use_container_width=True)
+
+# ------------------------------------------------------------------------------
+# ABA 6: VALIDAÇÃO, TESTES AUTOMATIZADOS, CASOS-LIMITE E TENDÊNCIAS (SEÇÃO 7)
+# ------------------------------------------------------------------------------
+with abas[5]:
+    st.subheader("🧪 Validação Física, Casos-Limite e Verificação de Tendências")
+    st.markdown(
+        "Esta seção executa em tempo real os mesmos testes verificados pelo arquivo `test_calculos.py` via `pytest`, "
+        "comprovando a exatidão algébrica, os casos-limite e as tendências físicas das equações."
+    )
+
+    c_conv = converter_unidades_potencia(3516.85284)
+    p_teste = calcular_propriedades_psicrometricas(30.0, 50.0, 0.0)
+    q_ilum_1 = calcular_carga_iluminacao(500.0, 1.0, 1.0)
+    q_ilum_2 = calcular_carga_iluminacao(1000.0, 1.0, 1.0)
+    u_cam_teste = calcular_U_parede_camadas(0.45, 14.0, 3.0, 0.0, 0.0)
+
+    df_testes = pd.DataFrame([
+        {
+            "Caso de Teste / Validação": "1. Conversão de Unidades Padrão (1 TR = 3516,85 W = 12.000 BTU/h)",
+            "Valor Esperado (Referência)": "1,000 TR | 12.000 BTU/h",
+            "Valor Calculado pelo Código": f"{c_conv['TR']:.3f} TR | {c_conv['BTU_h']:,.0f} BTU/h",
+            "Status": "✅ APROVADO" if abs(c_conv["TR"] - 1.0) < 1e-4 else "❌ FALHOU",
+        },
+        {
+            "Caso de Teste / Validação": "2. Caso-Limite: Área Nula (A = 0 m² -> Q_cond = 0 W)",
+            "Valor Esperado (Referência)": "0,00 W",
+            "Valor Calculado pelo Código": f"{calcular_conducao_opaca(2.5, 0.0, 15.0):.2f} W",
+            "Status": "✅ APROVADO" if calcular_conducao_opaca(2.5, 0.0, 15.0) == 0.0 else "❌ FALHOU",
+        },
+        {
+            "Caso de Teste / Validação": "3. Caso-Limite: Diferença de Temperatura Equivalente Nula (ΔT_eq = 0 °C -> Q_cond = 0 W)",
+            "Valor Esperado (Referência)": "0,00 W",
+            "Valor Calculado pelo Código": f"{calcular_conducao_opaca(2.5, 40.0, 0.0):.2f} W",
+            "Status": "✅ APROVADO" if calcular_conducao_opaca(2.5, 40.0, 0.0) == 0.0 else "❌ FALHOU",
+        },
+        {
+            "Caso de Teste / Validação": "4. Verificação de Tendência Linear: Dobrar potência de iluminação (500 W -> 1000 W)",
+            "Valor Esperado (Referência)": "Razão Q2 / Q1 = 2,000",
+            "Valor Calculado pelo Código": f"Razão = {q_ilum_2 / q_ilum_1:.3f} ({q_ilum_1:.0f} W -> {q_ilum_2:.0f} W)",
+            "Status": "✅ APROVADO" if abs((q_ilum_2 / q_ilum_1) - 2.0) < 1e-6 else "❌ FALHOU",
+        },
+        {
+            "Caso de Teste / Validação": "5. Invariante Física Psicrométrica (T_po <= T_bu <= T_bs em qualquer estado não-saturado)",
+            "Valor Esperado (Referência)": "T_po < T_bu < T_bs (para UR = 50%)",
+            "Valor Calculado pelo Código": f"T_po={p_teste['T_po']} °C < T_bu={p_teste['T_bu']} °C < T_bs={p_teste['T_bs']} °C",
+            "Status": "✅ APROVADO" if (p_teste["T_po"] < p_teste["T_bu"] < p_teste["T_bs"]) else "❌ FALHOU",
+        },
+        {
+            "Caso de Teste / Validação": "6. Associação de Resistências Térmicas em Série (NBR 15220: Tijolo 14 cm + Reboco 3 cm)",
+            "Valor Esperado (Referência)": "R_tot = 0,507 m²K/W | U = 1,97 W/m²K",
+            "Valor Calculado pelo Código": f"R_tot = {u_cam_teste['R_total']:.3f} m²K/W | U = {u_cam_teste['U']:.2f} W/m²K",
+            "Status": "✅ APROVADO" if abs(u_cam_teste["U"] - 1.97) < 0.02 else "❌ FALHOU",
+        },
+    ])
+    st.dataframe(df_testes, use_container_width=True, hide_index=True)
+
+    st.subheader("📉 Análise Paramétrica de Sensibilidade (Verificação Visual de Tendências)")
+    multiplicadores = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+    linhas_sens = []
+    for m in multiplicadores:
+        d_ilum = dict(dados_entrada, pot_iluminacao=dados_entrada["pot_iluminacao"] * m)
+        d_ocup = dict(dados_entrada, n_pessoas=int(round(dados_entrada["n_pessoas"] * m)))
+        d_vidro = dict(dados_entrada, area_vidro=dados_entrada["area_vidro"] * m)
+        linhas_sens.append({
+            "Fator Multiplicador do Parâmetro": f"{int(m * 100)}%",
+            "Variação da Potência de Iluminação": processar_carga_termica_completa(d_ilum)["Q_total"],
+            "Variação do Número de Ocupantes": processar_carga_termica_completa(d_ocup)["Q_total"],
+            "Variação da Área de Janelas": processar_carga_termica_completa(d_vidro)["Q_total"],
+        })
+    df_sens = pd.DataFrame(linhas_sens)
+    fig_sens = px.line(
+        df_sens,
+        x="Fator Multiplicador do Parâmetro",
+        y=["Variação da Potência de Iluminação", "Variação do Número de Ocupantes", "Variação da Área de Janelas"],
+        markers=True,
+        title="Resposta da Carga Térmica Total (W) à Variação Paramétrica de -50% a +100%",
+    )
+    st.plotly_chart(fig_sens, use_container_width=True)
+
+# ------------------------------------------------------------------------------
+# ABA 7: RELATÓRIO TÉCNICO AUTOMÁTICO E EXPORTAÇÃO HTML / PDF (SEÇÃO 6)
+# ------------------------------------------------------------------------------
+with abas[6]:
+    st.subheader("📝 Memorial de Cálculo Rastreável e Exportação")
+    data_geracao = datetime.datetime.now().strftime("%d/%m/%Y às %H:%M")
+
+    linhas_html_parcelas = "".join([
+        f"<tr><td>{r['Categoria']}</td><td>{r['Fenômeno Físico']}</td><td>{r['Natureza']}</td>"
+        f"<td style='text-align:right'>{r['W']:,.1f}</td><td style='text-align:right'>{r['W']*3.41214:,.0f}</td>"
+        f"<td style='text-align:right'>{(r['W']/res['Q_total']*100 if res['Q_total']>0 else 0):.1f}%</td></tr>"
+        for r in res["parcelas_lista"]
+    ])
+
+    relatorio_html = f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório Técnico de Carga Térmica - {nome_projeto}</title>
+<style>
+  body {{ font-family: Arial, sans-serif; margin: 32px; color: #1f2937; line-height: 1.5; }}
+  h1, h2, h3 {{ color: #1d3557; border-bottom: 1px solid #d1d5db; padding-bottom: 6px; }}
+  table {{ border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13px; }}
+  th, td {{ border: 1px solid #cbd5e1; padding: 8px 10px; }}
+  th {{ background-color: #f1f5f9; text-align: left; }}
+  .resumo-box {{ background: #f8fafc; border-left: 5px solid #1d3557; padding: 14px; margin: 16px 0; }}
+  .btn-print {{ background: #1d3557; color: white; padding: 10px 18px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-bottom: 20px; }}
+  @media print {{ .btn-print {{ display: none; }} }}
+</style>
+</head>
+<body>
+<button class="btn-print" onclick="window.print()">🖨️ Imprimir ou Salvar Relatório como PDF</button>
+<h1>Relatório Técnico de Carga Térmica e Conforto Térmico</h1>
+<p><strong>Projeto:</strong> {nome_projeto} | <strong>Equipe:</strong> {equipe_autores}<br>
+<strong>Cidade / Clima:</strong> {cidade_sel} | <strong>Condição:</strong> {horario_projeto} | <strong>Data de Geração:</strong> {data_geracao}</p>
+
+<div class="resumo-box">
+  <strong>SÍNTESE DOS RESULTADOS DIMENSIONAIS:</strong><br>
+  • <strong>Carga Sensível Total:</strong> {res['Q_sensivel_total']:,.1f} W ({res['unidades_sens']['BTU_h']:,.0f} BTU/h)<br>
+  • <strong>Carga Latente Total:</strong> {res['Q_latente_total']:,.1f} W ({res['unidades_lat']['BTU_h']:,.0f} BTU/h)<br>
+  • <strong>Carga Térmica Global:</strong> <strong>{res['Q_total']:,.1f} W</strong> | <strong>{res['unidades_total']['kW']:.2f} kW</strong> | <strong>{res['unidades_total']['BTU_h']:,.0f} BTU/h</strong> | <strong>{res['unidades_total']['TR']:.2f} TR</strong><br>
+  • <strong>Fator de Calor Sensível (FCS):</strong> {res['FCS']:.3f} | <strong>Densidade Térmica Real:</strong> {res['densidade_W_m2']:.1f} W/m² ({res['densidade_BTUh_m2']:.0f} BTU/h·m²)<br>
+  • <strong>Avaliação de Conforto (ISO 7730):</strong> PMV = {res_conf['PMV']:+.2f} | PPD = {res_conf['PPD']:.1f}% | T_op = {res_conf['T_op']:.1f} °C ({res_conf['status']})
+</div>
+
+<h2>1. Dimensões e Condições Termo-Higrométricas (Psicrometria)</h2>
+<ul>
+  <li><strong>Dimensões do Ambiente:</strong> {comprimento:.1f} m × {largura:.1f} m × {pe_direito:.1f} m (Área = {res['area_piso']:.1f} m² | Volume = {res['volume_amb']:.1f} m³)</li>
+  <li><strong>Ar Externo (Altitude = {altitude:.0f} m, P_atm = {psic_e['P_atm']:.2f} kPa):</strong> T_bs = {psic_e['T_bs']} °C | UR = {psic_e['UR']}% | T_bu = {psic_e['T_bu']} °C | T_po = {psic_e['T_po']} °C | ω = {psic_e['w_g_kg']} g/kg | h = {psic_e['h_kj_kg']} kJ/kg | v = {psic_e['v_m3_kg']} m³/kg</li>
+  <li><strong>Ar Interno (Meta de Projeto):</strong> T_bs = {psic_i['T_bs']} °C | UR = {psic_i['UR']}% | T_bu = {psic_i['T_bu']} °C | T_po = {psic_i['T_po']} °C | ω = {psic_i['w_g_kg']} g/kg | h = {psic_i['h_kj_kg']} kJ/kg | v = {psic_i['v_m3_kg']} m³/kg</li>
+</ul>
+
+<h2>2. Rastreabilidade das Equações e Resultados Intermediários</h2>
+<ol>
+  <li><strong>Paredes Externas:</strong> U = {U_parede:.2f} W/m²K | Área Líquida = {res['area_parede_liq']:.1f} m² | T_sol-ar = {res['sol_ar_par']['T_sol_ar']:.1f} °C | ΔT_eq = {res['dT_eq_parede']:.1f} K → <strong>Q = {res['Q_paredes']:.1f} W</strong></li>
+  <li><strong>Cobertura / Teto ({tipo_cobertura}):</strong> U = {U_cobertura:.2f} W/m²K | Área = {res['area_piso']:.1f} m² | ΔT_eq = {res['dT_eq_cob']:.1f} K → <strong>Q = {res['Q_cobertura']:.1f} W</strong></li>
+  <li><strong>Pisos ({condicao_piso}):</strong> Área = {res['area_piso']:.1f} m² | ΔT = {res['dT_piso']:.1f} K → <strong>Q = {res['Q_piso']:.1f} W</strong></li>
+  <li><strong>Janelas ({vidro_sel}):</strong> Área = {area_vidro:.1f} m² | U = {U_vidro:.2f} W/m²K | FS = {FS_vidro:.2f} | F_somb = {dados_entrada['fator_sombreamento']:.2f} → Condução = <strong>{res['res_janelas']['Q_vidro_cond']:.1f} W</strong> + Solar = <strong>{res['res_janelas']['Q_vidro_solar']:.1f} W</strong></li>
+  <li><strong>Portas ({porta_sel}):</strong> Área = {area_porta:.1f} m² | U = {U_porta:.2f} W/m²K | ΔT = {res['dT_porta']:.1f} K → <strong>Q = {res['Q_portas']:.1f} W</strong></li>
+  <li><strong>Ocupantes ({n_pessoas} pessoas - {ativ_sel}):</strong> Sensível = <strong>{res['res_ocup']['Q_ocup_sens']:.1f} W</strong> | Latente = <strong>{res['res_ocup']['Q_ocup_lat']:.1f} W</strong></li>
+  <li><strong>Iluminação e Equipamentos:</strong> Iluminação = <strong>{res['Q_iluminacao']:.1f} W</strong> | Equipamentos ({n_computadores} PCs + extras × F_sim={fator_simult_equip}) = <strong>{res['Q_equipamentos']:.1f} W</strong></li>
+  <li><strong>Ventilação Higiênica:</strong> Vazão = {res['res_ventilacao']['vazao_ls']:.1f} L/s (m_ar = {res['res_ventilacao']['m_dot_kg_s']:.4f} kg/s) → Sensível = <strong>{res['res_ventilacao']['Q_sens']:.1f} W</strong> | Latente = <strong>{res['res_ventilacao']['Q_lat']:.1f} W</strong></li>
+  <li><strong>Infiltração ({ach_infiltracao} ACH):</strong> Vazão = {res['res_infiltracao']['vazao_ls']:.1f} L/s (m_ar = {res['res_infiltracao']['m_dot_kg_s']:.4f} kg/s) → Sensível = <strong>{res['res_infiltracao']['Q_sens']:.1f} W</strong> | Latente = <strong>{res['res_infiltracao']['Q_lat']:.1f} W</strong></li>
+  <li><strong>Outras Cargas ({justificativa_outras}):</strong> Sensível = <strong>{res['Q_outras_sens']:.1f} W</strong> | Latente = <strong>{res['Q_outras_lat']:.1f} W</strong></li>
+</ol>
+
+<h2>3. Quadro Geral de Contribuição por Categoria</h2>
+<table>
+  <thead>
+    <tr><th>Categoria</th><th>Fenômeno Físico</th><th>Natureza</th><th>Potência (W)</th><th>Potência (BTU/h)</th><th>Participação (%)</th></tr>
+  </thead>
+  <tbody>
+    {linhas_html_parcelas}
+  </tbody>
+</table>
+
+<h2>4. Metodologia, Hipóteses e Observações</h2>
+<p>Modelo físico estacionário baseado em balanço de primeira lei da termodinâmica, resistência térmica por camadas em série (ABNT NBR 15220-2), conceito de Temperatura Sol-Ar para superfícies opacas (ASHRAE Cap. 18), psicrometria analítica (ASHRAE Cap. 1) e modelo de conforto de Fanger (ABNT NBR ISO 7730). Observação adicional: {justificativa_outras}</p>
+</body>
+</html>"""
+
+    st.download_button(
+        label="📥 Baixar Relatório Técnico Completo (.HTML pronto para arquivamento e impressão em PDF)",
+        data=relatorio_html,
+        file_name="Relatorio_Carga_Termica.html",
+        mime="text/html",
+    )
+    st.components.v1.html(relatorio_html, height=620, scrolling=True)
+
+# ------------------------------------------------------------------------------
+# ABA 8: SOBRE O MÉTODO, RESPOSTAS DA SEÇÃO 13 E USO CRÍTICO DE IA
+# ------------------------------------------------------------------------------
+with abas[7]:
+    st.subheader("📘 Fundamentação Teórica e Sobre o Método")
+    st.markdown("""
+    * **Regime Permanente Estacionário e Associação de Camadas (NBR 15220-2):** A transmitância térmica ($U$) de paredes e coberturas é obtida pelo inverso da resistência térmica total ($R_{tot} = R_{si} + \\sum (e_i / k_i) + R_{ar} + R_{se}$).
+    * **Temperatura Sol-Ar ($T_{sol-ar}$):** Incorpora a radiação solar incidente absorvida pela superfície opaca externa:
+      $$T_{sol-ar} = T_{ext} + \\frac{\\alpha \\cdot I_{solar}}{h_{ext}} \\implies \\dot{Q}_{opaco} = U \\cdot A \\cdot (T_{sol-ar} - T_{int})$$
+    * **Fenestração (Vidros):** Divide o ganho térmico em condução ($U_v A_v \\Delta T$) e radiação solar transmitida ($A_v \\cdot \\text{FS} \\cdot I_{sol} \\cdot F_{somb}$).
+    * **Psicrometria Analítica:** Corrige a pressão barométrica pela altitude ($Z$), determina a pressão de saturação de vapor por Tetens/ASHRAE, razão de mistura ($\\omega$), ponto de orvalho ($T_{po}$), bulbo úmido ($T_{bu}$) por bisseção termodinâmica exata, entalpia específica ($h$) e volume específico ($v$).
+    """)
+
+    st.divider()
+    st.subheader("🎓 Respostas às 10 Questões para Discussão (Seção 13 do Trabalho)")
+    with st.expander("Clique para expandir as 10 Respostas Técnicas Fundamentadas no Aplicativo", expanded=True):
+        st.markdown("""
+        **1. Qual parcela teve maior influência na carga térmica calculada?**
+        No cenário com cobertura exposta ao sol, a parcela dominante é a **condução pela cobertura/teto** (devido à grande área horizontal sob irradiância de $820\\text{ W/m}^2$ e elevada Temperatura Sol-Ar), seguida pela **radiação solar nas janelas a Oeste** e pelas **cargas internas (ocupantes + computadores)**. Já em pavimentos intermediários (sob andar climatizado), a radiação solar nos vidros e a dissipação interna assumem a liderança.
+
+        **2. Quais hipóteses possuem maior impacto sobre o resultado?**
+        A hipótese de **Regime Permanente Estacionário (ausência de amortecimento e atraso térmico por inércia das paredes/lajes)** e a hipótese de **simultaneidade máxima de pico** (considerar clima externo de $1\\%$ da NBR 16401, pico solar e ocupação máxima ocorrendo exatamente no mesmo instante).
+
+        **3. Qual entrada apresenta maior incerteza?**
+        A **Taxa de Infiltração de Ar Externo ($\\text{ACH}$)**, pois depende da estanqueidade real de frestas, pressão de vento e frequência de abertura de portas, seguida pelo **Fator de Simultaneidade de equipamentos**.
+
+        **4. Como a equipe validou o programa?**
+        Em 4 etapas (ver Aba 6 e `test_calculos.py`): (i) comparação algébrica com cálculo manual (erro $0,00\\%$); (ii) testes unitários automatizados via `pytest` cobrindo conversões ($1\\text{ TR} = 3.516,85\\text{ W} = 12.000\\text{ BTU/h}$); (iii) testes de casos-limite nulos ($A=0, \\Delta T=0, P=0 \\implies \\dot{Q}=0$) e invariantes psicrométricas ($T_{po} \\le T_{bu} \\le T_{bs}$); e (iv) análise paramétrica de sensibilidade e verificação de ordem de grandeza ($\\text{W/m}^2$).
+
+        **5. A Inteligência Artificial produziu algum erro técnico durante o desenvolvimento? Explique.**
+        Sim. Na versão preliminar (v1.0), a IA adotou massa específica do ar constante ($\\rho = 1,20\\text{ kg/m}^3$ ao nível do mar), o que gerava erro de até $12\\%$ a $15\\%$ na vazão mássica em cidades de maior altitude como Curitiba ($908\\text{ m}$) e Brasília ($1.159\\text{ m}$). Além disso, omitia parcelas de piso/portas/infiltração e exigia parâmetros brutos difíceis para o usuário ($\\omega$ em $\\text{g/kg}$, $U$ manual e $\\text{ACH}$ bruto). Tudo foi auditado e corrigido pela equipe.
+
+        **6. Qual modificação na edificação seria mais eficiente para reduzir a carga térmica?**
+        Isolamento térmico com pintura reflexiva clara ($\\alpha = 0,30$) na cobertura (reduzindo a carga de teto em mais de $75\\%$) combinado com vidro de controle solar (baixo $\\text{FS}$) e sombreamento externo nas janelas, conforme demonstrado no gráfico de *Retrofit* da Aba 4.
+
+        **7. Como a orientação das superfícies transparentes influencia os resultados?**
+        Altera diretamente a irradiância solar incidente ($I_{sol}$): enquanto uma fachada Sul recebe cerca de $220\\text{ W/m}^2$ (radiação difusa), a fachada Oeste recebe $680\\text{ W/m}^2$ à tarde, mais que triplicando o ganho solar transmitido ($\\dot{Q}_{vid,sol} = A_v \\cdot \\text{FS} \\cdot I_{sol} \\cdot F_{somb}$) para a mesma área de janela.
+
+        **8. Qual é a diferença entre carga térmica sensível, latente e total?**
+        A **carga sensível ($\\dot{Q}_S = \\dot{m} c_p \\Delta T$)** provoca variação da Temperatura de Bulbo Seco ($T_{bs}$); a **carga latente ($\\dot{Q}_L = \\dot{m} h_{lv} \\Delta \\omega$)** está associada à adição de vapor d'água (respiração/suor e umidade externa) que precisa ser condensado na serpentina; e a **carga total ($\\dot{Q}_{tot} = \\dot{Q}_S + \\dot{Q}_L = \\dot{m} \\Delta h$)** é a variação da entalpia total.
+
+        **9. Por que a carga térmica não deve ser estimada exclusivamente por área do ambiente?**
+        Porque regras empíricas como $600\\text{ BTU/h}\\cdot\\text{m}^2$ ignoram orientação solar, tipo de vidro, isolamento de cobertura, altitude psicrométrica, taxa de ocupação e separação entre calor sensível e latente ($\\text{FCS}$), levando a graves erros de sub ou superdimensionamento.
+
+        **10. Qual é a principal limitação da metodologia implementada?**
+        O cálculo em **regime permanente estacionário**, que não modela o amortecimento e o atraso térmico transiente da massa térmica das paredes e lajes ao longo das 24 horas (como fariam os métodos horários dinâmicos RTS ou Balanço de Calor da ASHRAE).
+        """)
+
+    st.divider()
+    st.subheader("🤖 Registro de Auditoria e Uso Crítico de Inteligência Artificial (Rubrica Seção 9)")
+    st.markdown("""
+    | Etapa / Iteração | Prompt / Solicitação Realizada | Falha ou Limitação Identificada na Resposta da IA | Correção Técnica e Aprendizado de Engenharia Aplicado |
+    | :--- | :--- | :--- | :--- |
+    | **1. Protótipo Inicial (v1.0)** | Geração de estrutura inicial em Python + Streamlit para cálculo de carga térmica. | Código monolítico em arquivo único, omissão de Pisos, Portas e Infiltração, e exigência de umidade absoluta ($\\text{g/kg}$) manual. | Separação modular (`calculos.py`, `app.py`, `test_calculos.py`), inclusão das 11 parcelas e cálculo psicrométrico a partir de $\\text{UR}$ e Altitude. |
+    | **2. Psicrometria e Altitude (Seção 4)** | Implementação das 7 propriedades psicrométricas analíticas. | Uso de densidade fixa ($\\rho = 1,20\\text{ kg/m}^3$), gerando erro em cidades altas (Curitiba/Brasília). | Substituição pela equação barométrica da ASHRAE e volume específico real ($\\dot{m}_{ar} = \\dot{V}/v_{ext}$). |
+    | **3. Validação e Bônus ISO 7730 (Seções 7 a 12)** | Inclusão de `pytest`, `iniciar.bat` e modelo de Fanger (PMV/PPD). | Necessidade de garantir invariantes ($T_{po} \\le T_{bu} \\le T_{bs}$) e funcionamento do `.bat` como Administrador no Windows. | Solução por bisseção para $T_{bu}$, comando `cd /d "%~dp0"` no `iniciar.bat` e bateria de testes automatizados. |
+    | **4. Revisão Crítica de Usabilidade e Camadas (NBR 15220)** | Inspeção visual das telas pela equipe identificando campos pouco intuitivos para usuários reais. | O programa pedia áreas prontas em $\\text{m}^2$ e coeficientes técnicos manuais ($U$, $\\text{FS}$, $\\text{ACH}$, $\\text{L/s}$, $T_{rm}$, $\\text{met}$ e campo duplicado de $\\text{clo}$). | Implementou-se cálculo de áreas por dimensões e múltiplos tamanhos de janelas/portas, cálculo físico de $U = 1/R_{tot}$ pela espessura em $\\text{cm}$ das camadas (NBR 15220-2) e seletores normativos automáticos. |
+    """)
+
+# === FIM DO ARQUIVO app.py ===
